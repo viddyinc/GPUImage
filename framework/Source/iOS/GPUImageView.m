@@ -20,7 +20,11 @@
     CGSize inputImageSize;
     GLfloat imageVertices[8];
     GLfloat backgroundColorRed, backgroundColorGreen, backgroundColorBlue, backgroundColorAlpha;
+
+    
 }
+
+@property(nonatomic,assign)CFAbsoluteTime lastRefreshTime;
 
 // Initialization and teardown
 - (void)commonInit;
@@ -88,6 +92,8 @@
     eaglLayer.drawableProperties = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO], kEAGLDrawablePropertyRetainedBacking, kEAGLColorFormatRGBA8, kEAGLDrawablePropertyColorFormat, nil];
 
     self.enabled = YES;
+    self.maximumFrameRate = INT_MAX;
+    self.lastRefreshTime=-1;
     
     runSynchronouslyOnVideoProcessingQueue(^{
         [GPUImageContext useImageProcessingContext];
@@ -216,8 +222,24 @@
 
 - (void)presentFramebuffer;
 {
+   
+    if(!self.enabled){
+        return;
+    };
+    
+    if(self.lastRefreshTime!=-1){
+        float lapse = CFAbsoluteTimeGetCurrent() - self.lastRefreshTime;
+        float max = 1.0/self.maximumFrameRate;
+        if (lapse<max) {
+            return;
+        }
+    }
+
+   
+    self.lastRefreshTime = CFAbsoluteTimeGetCurrent();
     glBindRenderbuffer(GL_RENDERBUFFER, displayRenderbuffer);
     [[GPUImageContext sharedImageProcessingContext] presentBufferForDisplay];
+   
 }
 
 #pragma mark -

@@ -123,6 +123,8 @@ NSString *const kGPUImageYUVVideoRangeConversionForLAFragmentShaderString = SHAD
 		return nil;
     }
     
+  
+    
     cameraProcessingQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH,0);
 	audioProcessingQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW,0);
 
@@ -189,6 +191,7 @@ NSString *const kGPUImageYUVVideoRangeConversionForLAFragmentShaderString = SHAD
 #endif
             if (err)
             {
+                [self didFail:nil];  //TODO add a real error
                 NSAssert(NO, @"Error at CVOpenGLESTextureCacheCreate %d", err);
             }
             
@@ -213,6 +216,7 @@ NSString *const kGPUImageYUVVideoRangeConversionForLAFragmentShaderString = SHAD
 	}
     
     if (!_inputCamera) {
+        [self didFail:nil];  //TODO add a real error
         return nil;
     }
     
@@ -268,6 +272,7 @@ NSString *const kGPUImageYUVVideoRangeConversionForLAFragmentShaderString = SHAD
 	else
 	{
 		NSLog(@"Couldn't add video output");
+        [self didFail:nil];  //TODO add a real error
         return nil;
 	}
     
@@ -283,6 +288,7 @@ NSString *const kGPUImageYUVVideoRangeConversionForLAFragmentShaderString = SHAD
 //        conn.videoMaxFrameDuration = CMTimeMake(1,60);
     
     [_captureSession commitConfiguration];
+   
     
 	return self;
 }
@@ -424,6 +430,8 @@ NSString *const kGPUImageYUVVideoRangeConversionForLAFragmentShaderString = SHAD
 	if (self.frontFacingCameraPresent == NO)
 		return;
 	
+    self.hasRenderedFirstFrame=NO;
+    
     NSError *error;
     AVCaptureDeviceInput *newVideoInput;
     AVCaptureDevicePosition currentCameraPosition = [[videoInput device] position];
@@ -622,6 +630,8 @@ NSString *const kGPUImageYUVVideoRangeConversionForLAFragmentShaderString = SHAD
     else {
         _preferredConversion = kColorConversion709;
     }
+    
+    self.outputTextureSize =CGSizeMake(bufferWidth, bufferHeight);
 
 	CMTime currentTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
 
@@ -920,6 +930,8 @@ NSString *const kGPUImageYUVVideoRangeConversionForLAFragmentShaderString = SHAD
             
             CFRelease(sampleBuffer);
             dispatch_semaphore_signal(frameRenderingSemaphore);
+            
+            [self didRenderFrame];
         });
     }
 }

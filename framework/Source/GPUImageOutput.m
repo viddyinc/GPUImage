@@ -460,4 +460,50 @@ void reportAvailableMemoryForGPUImage(NSString *tag)
     }
 }
 
+#pragma mark -
+#pragma mark Block LifeCycle
+
+-(void)didStartSetup{
+    self.error=nil;
+    self.hasRenderedFirstFrame=NO;
+    if(self.didStartSetupCompletionBlock) {
+        self.didStartSetupCompletionBlock();
+        self.didStartSetupCompletionBlock =nil;
+    }
+    
+}
+-(void)didEndSetup{
+    if(self.didEndSetupCompletionBlock) {
+        self.didEndSetupCompletionBlock();
+        self.didEndSetupCompletionBlock =nil;
+    }
+}
+-(void)didRenderFirstFrame{
+    self.hasRenderedFirstFrame=YES;
+    if(self.didRenderFirstFrameCompletionBlock) {
+        self.didRenderFirstFrameCompletionBlock();
+        self.didRenderFirstFrameCompletionBlock =nil;
+    }
+}
+-(void)didRenderFrame{
+    if(self.didRenderFrameCallback) {
+        self.didRenderFrameCallback();
+    }
+    if(!self.hasRenderedFirstFrame){
+        [self didRenderFirstFrame];
+    }
+}
+-(void)didRenderLastFrame{
+    if(self.didRenderLastFrameCompletionBlock) {
+        self.didRenderLastFrameCompletionBlock();
+        self.didRenderLastFrameCompletionBlock =nil;
+    }
+}
+-(void)didFail:(NSError*)error{
+    self.error=error;
+    if(self.didFailCallback) {
+        self.didFailCallback();
+    }
+}
+
 @end

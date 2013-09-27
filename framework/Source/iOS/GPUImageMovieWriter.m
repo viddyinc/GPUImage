@@ -28,6 +28,7 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString = SHADER_STRING
     GLuint inputTextureForMovieRendering;
     
     CMTime startTime, previousFrameTime, previousAudioTime;
+    CMTime lastPauseTime, accumulatedPausetime;
 
     dispatch_queue_t audioQueue, videoQueue;
     BOOL audioEncodingIsFinished, videoEncodingIsFinished;
@@ -59,6 +60,7 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString = SHADER_STRING
 @synthesize enabled;
 @synthesize shouldInvalidateAudioSampleWhenDone = _shouldInvalidateAudioSampleWhenDone;
 @synthesize paused = _paused;
+@synthesize writingPaused=_writingPaused;
 
 @synthesize delegate = _delegate;
 
@@ -252,8 +254,27 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString = SHADER_STRING
     assetWriterPixelBufferInput = [AVAssetWriterInputPixelBufferAdaptor assetWriterInputPixelBufferAdaptorWithAssetWriterInput:assetWriterVideoInput sourcePixelBufferAttributes:sourcePixelBufferAttributesDictionary];
     
     [assetWriter addInput:assetWriterVideoInput];
+    
 }
 
+
+- (void)pauseRecording{
+    if( ! CMTIME_IS_NEGATIVE_INFINITY(previousFrameTime) ){
+        lastPauseTime=previousFrameTime;
+    } else if( ! CMTIME_IS_NEGATIVE_INFINITY(previousAudioTime) ){
+        lastPauseTime=previousAudioTime;
+    } else{
+        lastPauseTime=kCMTimeZero;
+    }
+    
+   
+    _writingPaused=YES;
+}
+
+- (void)resumeRecording{
+    _writingPaused=NO;
+    
+}
 - (void)startRecording;
 {
     alreadyFinishedRecording = NO;
@@ -355,7 +376,7 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString = SHADER_STRING
 
 - (void)processAudioBuffer:(CMSampleBufferRef)audioBuffer;
 {
-    if (!isRecording)
+    if (!isRecording || _writingPaused)
     {
         return;
     }
@@ -639,7 +660,7 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString = SHADER_STRING
 
 - (void)newFrameReadyAtTime:(CMTime)frameTime atIndex:(NSInteger)textureIndex;
 {
-    if (!isRecording)
+    if (!isRecording || _writingPaused)
     {
         return;
     }
@@ -730,6 +751,11 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString = SHADER_STRING
         dispatch_async(movieWritingQueue, write);
     else
         write();
+    
+    if(self.progressBlock){
+        self.progressBlock();
+    }
+    
 }
 
 - (NSInteger)nextAvailableTextureIndex;
@@ -887,6 +913,10 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString = SHADER_STRING
 
 - (AVAssetWriter*)assetWriter {
     return assetWriter;
+}
+
+-(CMTime)getRecordingTime{
+    return kCMTimeZero;
 }
 
 @end

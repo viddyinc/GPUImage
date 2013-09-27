@@ -26,6 +26,8 @@ typedef enum {
 
 @property(nonatomic) BOOL enabled;
 
+@property(nonatomic) float maximumFrameRate;
+
 /** Handling fill mode
  
  @param redComponent Red component for background color

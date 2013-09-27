@@ -231,7 +231,7 @@ NSString *const kGPUImageCropFragmentShaderString =  SHADER_STRING
 
             cropTextureCoordinates[4] = minY; // 0,1
             cropTextureCoordinates[5] = 1.0 - minX;
-
+            
             cropTextureCoordinates[6] = minY; // 0,0
             cropTextureCoordinates[7] = 1.0 - maxX;
         }; break;
@@ -264,8 +264,14 @@ NSString *const kGPUImageCropFragmentShaderString =  SHADER_STRING
                       newValue.size.width >= 0 && newValue.size.width <= 1 &&
                       newValue.size.height >= 0 && newValue.size.height <= 1);
 
-    _cropRegion = newValue;
-    [self calculateCropTextureCoordinates];
+    if( newValue.origin.x != _cropRegion.origin.x
+       || newValue.origin.y != _cropRegion.origin.y
+       || newValue.size.width != _cropRegion.size.width
+       || newValue.size.height != _cropRegion.size.height){
+            
+            _cropRegion = newValue;
+            [self calculateCropTextureCoordinates];
+    }
 }
 
 - (void)setInputRotation:(GPUImageRotationMode)newInputRotation atIndex:(NSInteger)textureIndex;

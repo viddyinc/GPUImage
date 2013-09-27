@@ -68,6 +68,7 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
 		return nil;
     }
     
+  
     /* Detect iOS version < 6 which require a texture cache corruption workaround */
     requiresFrontCameraTextureCacheCorruptionWorkaround = [[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] == NSOrderedAscending;
     
@@ -118,6 +119,7 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
     [self.captureSession addOutput:photoOutput];
     
     [self.captureSession commitConfiguration];
+  
     
     self.jpegCompressionQuality = 0.8;
     

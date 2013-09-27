@@ -144,11 +144,16 @@
     }
 }
 
+
+
+
 - (void)dealloc
 {
     runSynchronouslyOnVideoProcessingQueue(^{
-        [displayLink removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-        displayLink = nil;
+        if(displayLink){
+            [displayLink removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+            displayLink = nil;
+        }
     });
     if ([GPUImageContext supportsFastTextureUpload])
     {
@@ -168,6 +173,8 @@
 
 - (void)startProcessing
 {
+    [self didStartSetup];
+    
     if( self.playerItem ) {
         [self processPlayerItem];
         return;
@@ -252,10 +259,14 @@
 
     if ([reader startReading] == NO) 
     {
-            NSLog(@"Error reading from file at URL: %@", self.url);
+        
+        [self didFail:nil]; //TODO add error
+        NSLog(@"Error reading from file at URL: %@", self.url);
         return;
     }
-
+    
+    [self didEndSetup];
+    
     __unsafe_unretained GPUImageMovie *weakSelf = self;
 
     if (synchronizedMovieWriter != nil)
@@ -300,6 +311,23 @@
     }
 }
 
+
+-(void)flushPlayerItem{
+    
+    [playerItemOutput setDelegate:nil queue:nil];
+    [_playerItem removeOutput:playerItemOutput];
+   
+    [displayLink removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+    displayLink = nil;
+    
+    playerItemOutput=nil;
+    _playerItem=nil;
+    _url = nil;
+    _asset = nil;
+
+    
+}
+
 - (void)processPlayerItem
 {
     runSynchronouslyOnVideoProcessingQueue(^{
@@ -314,13 +342,18 @@
 
         [_playerItem addOutput:playerItemOutput];
         [playerItemOutput requestNotificationOfMediaDataChangeWithAdvanceInterval:0.1];
+        [self didEndSetup];
     });
 }
 
+// delegate method
 - (void)outputMediaDataWillChange:(AVPlayerItemOutput *)sender
 {
 	// Restart display link.
 	[displayLink setPaused:NO];
+}
+- (void)outputSequenceWasFlushed:(AVPlayerItemOutput *)output{
+    //This method is called after any attempt to seek or change the playback direction of the item’s content. If you are maintaining any queued future samples, you can use your implementation of this method to discard those samples.
 }
 
 - (void)displayLinkCallback:(CADisplayLink *)sender
@@ -378,16 +411,22 @@
                 [weakSelf processMovieFrame:sampleBufferRef];
                 CMSampleBufferInvalidate(sampleBufferRef);
                 CFRelease(sampleBufferRef);
+                
+                
             });
 
             return YES;
         }
         else
         {
+            
+            [self didRenderLastFrame];
+            
             if (!keepLooping) {
                 videoEncodingIsFinished = YES;
-                if( videoEncodingIsFinished && audioEncodingIsFinished )
+                if( videoEncodingIsFinished && audioEncodingIsFinished ){
                     [self endProcessing];
+                }
             }
         }
     }
@@ -458,6 +497,9 @@
         _preferredConversion = kColorConversion709;
     }
 
+    
+    self.outputTextureSize =CGSizeMake(bufferWidth, bufferHeight);
+    
     CFAbsoluteTime startTime = CFAbsoluteTimeGetCurrent();
 
     if ([GPUImageContext supportsFastTextureUpload])
@@ -492,6 +534,7 @@
             }
             if (err)
             {
+                [self didFail:nil]; //TODO add real error
                 NSLog(@"Error at CVOpenGLESTextureCacheCreateTextureFromImage %d", err);
             }
 
@@ -512,6 +555,7 @@
             }
             if (err)
             {
+               [self didFail:nil]; //TODO add real error
                 NSLog(@"Error at CVOpenGLESTextureCacheCreateTextureFromImage %d", err);
             }
 
@@ -551,6 +595,7 @@
             if (!texture || err) {
                 NSLog(@"Movie CVOpenGLESTextureCacheCreateTextureFromImage failed (error: %d)", err);
                 NSAssert(NO, @"Camera failure");
+                [self didFail:nil]; //TODO add real error
                 return;
             }
 
@@ -615,6 +660,9 @@
         CFAbsoluteTime currentFrameTime = (CFAbsoluteTimeGetCurrent() - startTime);
         NSLog(@"Current frame time : %f ms", 1000.0 * currentFrameTime);
     }
+    
+    [self didRenderFrame];
+    
 }
 
 - (void)endProcessing;
@@ -637,6 +685,9 @@
         [self.delegate didCompletePlayingMovie];
     }
     self.delegate = nil;
+    
+    //this is neccesary if we are using the playeritem setup to correctly dealloc resources
+    [self flushPlayerItem];
 }
 
 - (void)cancelProcessing

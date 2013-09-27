@@ -44,6 +44,7 @@ extern NSString *const kGPUImageYUVVideoRangeConversionForLAFragmentShaderString
     __unsafe_unretained id<GPUImageVideoCameraDelegate> _delegate;
 }
 
+
 /// The AVCaptureSession used to capture from the camera
 @property(readonly, retain, nonatomic) AVCaptureSession *captureSession;
 

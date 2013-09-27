@@ -39,6 +39,7 @@ extern NSString *const kGPUImageColorSwizzlingFragmentShaderString;
 @property(readwrite, nonatomic) BOOL shouldInvalidateAudioSampleWhenDone;
 @property(nonatomic, copy) void(^completionBlock)(void);
 @property(nonatomic, copy) void(^failureBlock)(NSError*);
+@property(nonatomic, copy) void(^progressBlock)(void);
 @property(nonatomic, assign) id<GPUImageMovieWriterDelegate> delegate;
 @property(readwrite, nonatomic) BOOL encodingLiveVideo;
 @property(nonatomic, copy) BOOL(^videoInputReadyCallback)(void);
@@ -49,6 +50,8 @@ extern NSString *const kGPUImageColorSwizzlingFragmentShaderString;
 @property(nonatomic, assign) CGAffineTransform transform;
 @property(nonatomic, copy) NSArray *metaData;
 @property(nonatomic, assign, getter = isPaused) BOOL paused;
+@property(nonatomic, assign, getter = isWritingPaused) BOOL writingPaused;
+
 
 // Initialization and teardown
 - (id)initWithMovieURL:(NSURL *)newMovieURL size:(CGSize)newSize;
@@ -59,10 +62,15 @@ extern NSString *const kGPUImageColorSwizzlingFragmentShaderString;
 // Movie recording
 - (void)startRecording;
 - (void)startRecordingInOrientation:(CGAffineTransform)orientationTransform;
+
+- (void)pauseRecording;
+- (void)resumeRecording;
+
 - (void)finishRecording;
 - (void)finishRecordingWithCompletionHandler:(void (^)(void))handler;
 - (void)cancelRecording;
 - (void)processAudioBuffer:(CMSampleBufferRef)audioBuffer;
 - (void)enableSynchronizationCallbacks;
 
+- (CMTime)getRecordingTime;
 @end

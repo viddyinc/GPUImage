@@ -1,8 +1,14 @@
 #import "GPUImageContext.h"
 
+
+
 #if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
 #import <UIKit/UIKit.h>
 #else
+
+
+
+
 // For now, just redefine this on the Mac
 typedef NS_ENUM(NSInteger, UIImageOrientation) {
     UIImageOrientationUp,            // default orientation
@@ -15,6 +21,10 @@ typedef NS_ENUM(NSInteger, UIImageOrientation) {
     UIImageOrientationRightMirrored, // vertical flip
 };
 #endif
+
+
+
+typedef void (^GPUImageOutputCallBack)(void);
 
 typedef struct GPUTextureOptions {
     GLenum minFilter;
@@ -62,6 +72,25 @@ void reportAvailableMemoryForGPUImage(NSString *tag);
     BOOL allTargetsWantMonochromeData;
 }
 
+/// Block Based rendering lifecycle callback
+@property(nonatomic,strong)GPUImageOutputCallBack didStartSetupCompletionBlock;
+@property(nonatomic,strong)GPUImageOutputCallBack didEndSetupCompletionBlock;
+@property(nonatomic,strong)GPUImageOutputCallBack didRenderFirstFrameCompletionBlock;
+@property(nonatomic,strong)GPUImageOutputCallBack didRenderFrameCallback;
+@property(nonatomic,strong)GPUImageOutputCallBack didRenderLastFrameCompletionBlock;
+@property(nonatomic,strong)GPUImageOutputCallBack didFailCallback;
+@property(nonatomic,strong)NSError *error;
+@property(nonatomic,assign)Boolean hasRenderedFirstFrame;
+
+-(void)didStartSetup;
+-(void)didEndSetup;
+-(void)didRenderFirstFrame;
+-(void)didRenderFrame;
+-(void)didRenderLastFrame;
+-(void)didFail:(NSError*)error;
+
+
+
 @property(readwrite, nonatomic) BOOL shouldSmoothlyScaleOutput;
 @property(readwrite, nonatomic) BOOL shouldIgnoreUpdatesToThisTarget;
 @property(readwrite, nonatomic, retain) GPUImageMovieWriter *audioEncodingTarget;
@@ -69,6 +98,7 @@ void reportAvailableMemoryForGPUImage(NSString *tag);
 @property(nonatomic, copy) void(^frameProcessingCompletionBlock)(GPUImageOutput*, CMTime);
 @property(nonatomic) BOOL enabled;
 @property(readwrite, nonatomic) GPUTextureOptions outputTextureOptions;
+@property(nonatomic, assign) CGSize outputTextureSize;
 
 /// @name Managing targets
 - (void)setInputTextureForTarget:(id<GPUImageInput>)target atIndex:(NSInteger)inputTextureIndex;
